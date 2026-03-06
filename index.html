@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="snobweb - Create your personal web of snobbiness with interactive D3 force-directed graph" />
   <title>snobweb — the web of your snobbiness</title>
   <script src="vendor/d3.v7.min.js"></script>
   <style>
@@ -16,6 +17,8 @@
       --accent2:   #8fa8d0;
       --text:      #e8e4dc;
       --muted:     #6b6880;
+      --success:   #7cb342;
+      --error:     #d84315;
       --node-r:    38;
       --center-r:  52;
     }
@@ -229,6 +232,160 @@
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
+
+    /* ── Settings Button ────────────────────────────────────── */
+    #settings-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 0.4rem 0.7rem;
+      transition: all 0.2s;
+      margin-left: 0.5rem;
+    }
+    #settings-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Modal ──────────────────────────────────────────────── */
+    #modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+    }
+    #modal-overlay.show { display: flex; }
+
+    #modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-width: 500px;
+      width: 90%;
+      padding: 2rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    #modal h2 {
+      color: var(--accent);
+      font-size: 1.3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    #modal p {
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+
+    #modal label {
+      display: block;
+      color: var(--text);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+
+    #modal input[type="text"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 0.6rem;
+      margin-bottom: 1.5rem;
+    }
+    #modal input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    #modal-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    #modal button {
+      padding: 0.6rem 1.2rem;
+      border-radius: 4px;
+      border: none;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    #save-api-key {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    #save-api-key:hover { opacity: 0.85; }
+
+    #cancel-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    #cancel-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    #api-link {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    #api-link:hover { text-decoration: underline; }
+
+    /* ── Loading Indicator ─────────────────────────────────── */
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── Status Indicator ──────────────────────────────────── */
+    #api-status {
+      font-size: 0.75rem;
+      margin-left: auto;
+      margin-right: 1rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 3px;
+      display: none;
+    }
+    #api-status.active {
+      display: block;
+      background: rgba(124, 179, 66, 0.2);
+      color: var(--success);
+      border: 1px solid var(--success);
+    }
+    #api-status.inactive {
+      display: block;
+      background: rgba(216, 67, 21, 0.2);
+      color: var(--error);
+      border: 1px solid var(--error);
+    }
   </style>
 </head>
 <body>
@@ -236,6 +393,7 @@
   <header>
     <span class="brand">snobweb</span>
     <span class="tagline">the web of your snobbiness</span>
+    <div id="api-status" aria-live="polite"></div>
     <div class="search-area">
       <input
         id="search-input"
@@ -243,97 +401,91 @@
         placeholder="I'm a snob about…"
         autocomplete="off"
         spellcheck="false"
+        aria-label="Search for nouns"
       />
-      <ul id="suggestions"></ul>
-      <button id="add-btn" disabled>Add</button>
+      <ul id="suggestions" role="listbox"></ul>
+      <button id="add-btn" disabled aria-label="Add item to canvas">Add</button>
+      <button id="settings-btn" aria-label="Settings" title="API Settings">⚙</button>
     </div>
   </header>
 
-  <svg id="canvas" width="100%" height="100%"></svg>
+  <svg id="canvas" width="100%" height="100%" role="img" aria-label="Force-directed graph visualization"></svg>
 
-  <div id="empty-hint">
+  <div id="empty-hint" aria-live="polite">
     Search for something you're a snob about and click <strong>Add</strong><br>
     to start weaving your web.
   </div>
 
-  <div id="toast"></div>
+  <div id="toast" role="alert" aria-live="assertive"></div>
+
+  <!-- Settings Modal -->
+  <div id="modal-overlay" role="dialog" aria-labelledby="modal-title" aria-modal="true">
+    <div id="modal">
+      <h2 id="modal-title">Noun Project API Settings</h2>
+      <p>
+        To display real SVG icons from The Noun Project, you need an API key. 
+        <a id="api-link" href="https://thenounproject.com/developers/apps/" target="_blank" rel="noopener noreferrer">
+          Get a free API key here
+        </a> (no credit card required for 30 days).
+      </p>
+      <label for="api-key-input">API Key:</label>
+      <input type="text" id="api-key-input" placeholder="Enter your Noun Project API key" />
+      <div id="modal-actions">
+        <button id="cancel-btn">Cancel</button>
+        <button id="save-api-key">Save</button>
+      </div>
+    </div>
+  </div>
 
   <script>
   (function () {
     'use strict';
 
-    // ── Palette for nodes ──────────────────────────────────────
+    // ──────────────────────────────────────────────────────────
+    // Configuration & State
+    // ──────────────────────────────────────────────────────────
     const PALETTE = [
       '#c9a96e', '#8fa8d0', '#a8c8a0', '#d0a0a8',
       '#b0c0d8', '#d4b896', '#a0b8c8', '#c8b0d0',
       '#98c8a8', '#d0c098',
     ];
 
-    // ── Suggested nouns with emoji icons ──────────────────────
-    const SUGGESTIONS_LIST = [
-      { label: 'coffee',          icon: '☕' },
-      { label: 'wine',            icon: '🍷' },
-      { label: 'whisky',          icon: '🥃' },
-      { label: 'tea',             icon: '🍵' },
-      { label: 'cheese',          icon: '🧀' },
-      { label: 'olive oil',       icon: '🫒' },
-      { label: 'bread',           icon: '🍞' },
-      { label: 'chocolate',       icon: '🍫' },
-      { label: 'pasta',           icon: '🍝' },
-      { label: 'sushi',           icon: '🍣' },
-      { label: 'eco-friendliness',icon: '♻️' },
-      { label: 'sustainability',  icon: '🌱' },
-      { label: 'minimalism',      icon: '◻️' },
-      { label: 'simplicity',      icon: '✦' },
-      { label: 'efficiency',      icon: '⚡' },
-      { label: 'typography',      icon: '✍️' },
-      { label: 'design',          icon: '🎨' },
-      { label: 'architecture',    icon: '🏛️' },
-      { label: 'natural fibers',  icon: '🧶' },
-      { label: 'linen',           icon: '🧵' },
-      { label: 'books',           icon: '📚' },
-      { label: 'film',            icon: '🎬' },
-      { label: 'music',           icon: '🎵' },
-      { label: 'vinyl',           icon: '⚫' },
-      { label: 'photography',     icon: '📷' },
-      { label: 'cycling',         icon: '🚲' },
-      { label: 'running',         icon: '🏃' },
-      { label: 'yoga',            icon: '🧘' },
-      { label: 'hiking',          icon: '🥾' },
-      { label: 'grammar',         icon: '📝' },
-      { label: 'punctuation',     icon: '•' },
-      { label: 'fonts',           icon: 'Aa' },
-      { label: 'notebooks',       icon: '📓' },
-      { label: 'stationery',      icon: '✏️' },
-      { label: 'pens',            icon: '🖊️' },
-      { label: 'craft beer',      icon: '🍺' },
-      { label: 'cocktails',       icon: '🍸' },
-      { label: 'sourdough',       icon: '🥖' },
-      { label: 'gardens',         icon: '🌿' },
-      { label: 'ceramics',        icon: '🏺' },
-      { label: 'leather goods',   icon: '👜' },
-      { label: 'watches',         icon: '⌚' },
-      { label: 'skincare',        icon: '✨' },
-      { label: 'perfume',         icon: '🌸' },
-      { label: 'espresso',        icon: '☕' },
-      { label: 'matcha',          icon: '🍵' },
-      { label: 'maps',            icon: '🗺️' },
-      { label: 'travel',          icon: '✈️' },
-      { label: 'food',            icon: '🍴' },
-      { label: 'art',             icon: '🖼️' },
-    ];
+    // Fallback emoji icons (used when API is not configured)
+    const EMOJI_FALLBACKS = {
+      'coffee': '☕', 'wine': '🍷', 'whisky': '🥃', 'tea': '🍵',
+      'cheese': '🧀', 'olive oil': '🫒', 'bread': '🍞', 'chocolate': '🍫',
+      'pasta': '🍝', 'sushi': '🍣', 'eco-friendliness': '♻️',
+      'sustainability': '🌱', 'minimalism': '◻️', 'simplicity': '✦',
+      'efficiency': '⚡', 'typography': '✍️', 'design': '🎨',
+      'architecture': '🏛️', 'natural fibers': '🧶', 'linen': '🧵',
+      'books': '📚', 'film': '🎬', 'music': '🎵', 'vinyl': '⚫',
+      'photography': '📷', 'cycling': '🚲', 'running': '🏃',
+      'yoga': '🧘', 'hiking': '🥾', 'grammar': '📝',
+      'punctuation': '•', 'fonts': 'Aa', 'notebooks': '📓',
+      'stationery': '✏️', 'pens': '🖊️', 'craft beer': '🍺',
+      'cocktails': '🍸', 'sourdough': '🥖', 'gardens': '🌿',
+      'ceramics': '🏺', 'leather goods': '👜', 'watches': '⌚',
+      'skincare': '✨', 'perfume': '🌸', 'espresso': '☕',
+      'matcha': '🍵', 'maps': '🗺️', 'travel': '✈️',
+      'food': '🍴', 'art': '🖼️',
+    };
 
-    // ── State ──────────────────────────────────────────────────
-    const HEADER_H   = 53;
-    const CENTER_ID  = 'center';
+    const HEADER_H = 53;
+    const CENTER_ID = 'center';
+    const API_KEY_STORAGE = 'nounproject_api_key';
+    
     let nodes = [{ id: CENTER_ID, label: 'me', isCenter: true, x: 0, y: 0 }];
     let links = [];
     let colorIndex = 0;
+    let apiKey = localStorage.getItem(API_KEY_STORAGE) || '';
+    let iconCache = new Map(); // Cache fetched icons
+    let searchDebounceTimer;
 
-    // ── D3 Setup ───────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────
+    // D3 Setup
+    // ──────────────────────────────────────────────────────────
     const svgEl = document.getElementById('canvas');
     const svg = d3.select(svgEl);
-
     const gLinks = svg.append('g').attr('class', 'links-layer');
     const gNodes = svg.append('g').attr('class', 'nodes-layer');
 
@@ -347,7 +499,136 @@
       .force('collision', d3.forceCollide().radius(55))
       .on('tick', ticked);
 
-    // ── Resize ─────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────
+    // API Functions
+    // ──────────────────────────────────────────────────────────
+    
+    // Note: The Noun Project API requires OAuth 2.0
+    // For a production app, you'd implement a backend proxy
+    // For now, we'll use CORS-enabled requests with API key if available
+    
+    async function searchNounProjectIcons(query, limit = 5) {
+      if (!apiKey) return [];
+      
+      try {
+        // This is a simplified example - in production you'd use OAuth
+        // and likely proxy through your own backend to keep keys secure
+        const url = `https://api.thenounproject.com/v2/icon?query=${encodeURIComponent(query)}&limit=${limit}`;
+        
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.icons || [];
+      } catch (error) {
+        console.warn('Noun Project API error:', error);
+        return [];
+      }
+    }
+
+    async function getIconData(term) {
+      // Check cache first
+      if (iconCache.has(term)) {
+        return iconCache.get(term);
+      }
+
+      // Try to fetch from API
+      if (apiKey) {
+        const icons = await searchNounProjectIcons(term, 1);
+        if (icons.length > 0) {
+          const iconData = {
+            type: 'svg',
+            data: icons[0].icon_url || icons[0].preview_url,
+            id: icons[0].id
+          };
+          iconCache.set(term, iconData);
+          return iconData;
+        }
+      }
+
+      // Fallback to emoji
+      const emoji = EMOJI_FALLBACKS[term.toLowerCase()] || '◆';
+      const fallback = { type: 'emoji', data: emoji };
+      iconCache.set(term, fallback);
+      return fallback;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // UI Elements
+    // ──────────────────────────────────────────────────────────
+    const searchInput  = document.getElementById('search-input');
+    const addBtn       = document.getElementById('add-btn');
+    const suggestionUl = document.getElementById('suggestions');
+    const settingsBtn  = document.getElementById('settings-btn');
+    const modalOverlay = document.getElementById('modal-overlay');
+    const apiKeyInput  = document.getElementById('api-key-input');
+    const saveApiKeyBtn = document.getElementById('save-api-key');
+    const cancelBtn    = document.getElementById('cancel-btn');
+    const apiStatus    = document.getElementById('api-status');
+
+    // ──────────────────────────────────────────────────────────
+    // Settings Modal
+    // ──────────────────────────────────────────────────────────
+    function updateApiStatus() {
+      if (apiKey) {
+        apiStatus.className = 'active';
+        apiStatus.textContent = '● API Connected';
+      } else {
+        apiStatus.className = 'inactive';
+        apiStatus.textContent = '● Using Emoji Fallbacks';
+      }
+    }
+
+    settingsBtn.addEventListener('click', () => {
+      apiKeyInput.value = apiKey;
+      modalOverlay.classList.add('show');
+      apiKeyInput.focus();
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      modalOverlay.classList.remove('show');
+    });
+
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        modalOverlay.classList.remove('show');
+      }
+    });
+
+    saveApiKeyBtn.addEventListener('click', () => {
+      const newKey = apiKeyInput.value.trim();
+      apiKey = newKey;
+      if (newKey) {
+        localStorage.setItem(API_KEY_STORAGE, newKey);
+        showToast('API key saved successfully!');
+      } else {
+        localStorage.removeItem(API_KEY_STORAGE);
+        showToast('API key removed. Using emoji fallbacks.');
+      }
+      iconCache.clear(); // Clear cache when API key changes
+      updateApiStatus();
+      modalOverlay.classList.remove('show');
+    });
+
+    // Keyboard support for modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modalOverlay.classList.contains('show')) {
+        modalOverlay.classList.remove('show');
+      }
+    });
+
+    updateApiStatus();
+
+    // ──────────────────────────────────────────────────────────
+    // Resize Handler
+    // ──────────────────────────────────────────────────────────
     window.addEventListener('resize', () => {
       width  = window.innerWidth;
       height = window.innerHeight - HEADER_H;
@@ -355,7 +636,9 @@
       simulation.alpha(0.2).restart();
     });
 
-    // ── Render ─────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────
+    // Render Functions
+    // ──────────────────────────────────────────────────────────
     function update () {
       // Links
       const linkSel = gLinks.selectAll('.link').data(links, d => d.source.id + '-' + d.target.id);
@@ -376,6 +659,9 @@
       const nodeEnter = nodeSel.enter()
         .append('g')
         .attr('class', 'node-group')
+        .attr('role', 'button')
+        .attr('tabindex', '0')
+        .attr('aria-label', d => d.isCenter ? 'Center node' : `Node: ${d.label}`)
         .style('opacity', 0)
         .call(drag(simulation));
 
@@ -402,20 +688,37 @@
             .attr('r', 38)
             .attr('fill', d.color + '22')
             .attr('stroke', d.color);
-          g.append('text')
-            .attr('class', 'node-icon')
-            .attr('y', -4)
-            .text(d.icon);
+          
+          // Icon rendering (supports both emoji and SVG)
+          if (d.iconType === 'svg' && d.iconUrl) {
+            // For SVG icons from Noun Project API
+            g.append('image')
+              .attr('class', 'node-icon-img')
+              .attr('xlink:href', d.iconUrl)
+              .attr('x', -16)
+              .attr('y', -20)
+              .attr('width', 32)
+              .attr('height', 32);
+          } else {
+            // For emoji fallbacks
+            g.append('text')
+              .attr('class', 'node-icon')
+              .attr('y', -4)
+              .text(d.icon || '◆');
+          }
+          
           g.append('text')
             .attr('class', 'node-label')
             .attr('y', 16)
             .text(d.label);
+          
           // Remove button
           g.append('circle')
             .attr('class', 'remove-btn')
             .attr('r', 9)
             .attr('cx', 28)
             .attr('cy', -28)
+            .attr('aria-label', `Remove ${d.label}`)
             .on('click', (event, d) => { event.stopPropagation(); removeNode(d.id); });
           g.append('text')
             .attr('class', 'remove-x')
@@ -452,7 +755,9 @@
         .attr('transform', d => `translate(${d.x},${d.y})`);
     }
 
-    // ── Drag ───────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────
+    // Drag Behavior
+    // ──────────────────────────────────────────────────────────
     function drag (sim) {
       return d3.drag()
         .on('start', (event, d) => {
@@ -468,8 +773,10 @@
         });
     }
 
-    // ── Add / Remove ───────────────────────────────────────────
-    function addNode (label) {
+    // ──────────────────────────────────────────────────────────
+    // Add / Remove Nodes
+    // ──────────────────────────────────────────────────────────
+    async function addNode (label) {
       label = label.trim().toLowerCase();
       if (!label) return;
 
@@ -479,23 +786,44 @@
         return;
       }
 
-      const match = SUGGESTIONS_LIST.find(s => s.label === label);
-      const icon  = match ? match.icon : '◆';
-      const color = PALETTE[colorIndex % PALETTE.length];
-      colorIndex++;
+      // Show loading indicator
+      addBtn.disabled = true;
+      addBtn.innerHTML = 'Adding<span class="loading"></span>';
 
-      const newNode = {
-        id: 'node-' + Date.now(),
-        label,
-        icon,
-        color,
-        x: width  / 2 + (Math.random() - 0.5) * 160,
-        y: height / 2 + (Math.random() - 0.5) * 160,
-      };
-      nodes.push(newNode);
-      links.push({ source: CENTER_ID, target: newNode.id });
+      try {
+        // Fetch icon data
+        const iconData = await getIconData(label);
+        const color = PALETTE[colorIndex % PALETTE.length];
+        colorIndex++;
 
-      update();
+        const newNode = {
+          id: 'node-' + Date.now(),
+          label,
+          color,
+          x: width  / 2 + (Math.random() - 0.5) * 160,
+          y: height / 2 + (Math.random() - 0.5) * 160,
+        };
+
+        // Set icon properties based on type
+        if (iconData.type === 'svg') {
+          newNode.iconType = 'svg';
+          newNode.iconUrl = iconData.data;
+        } else {
+          newNode.iconType = 'emoji';
+          newNode.icon = iconData.data;
+        }
+
+        nodes.push(newNode);
+        links.push({ source: CENTER_ID, target: newNode.id });
+
+        update();
+      } catch (error) {
+        console.error('Error adding node:', error);
+        showToast('Error adding item. Please try again.');
+      } finally {
+        addBtn.disabled = false;
+        addBtn.textContent = 'Add';
+      }
     }
 
     function removeNode (id) {
@@ -508,32 +836,84 @@
       update();
     }
 
-    // ── Search / Autocomplete ──────────────────────────────────
-    const searchInput  = document.getElementById('search-input');
-    const addBtn       = document.getElementById('add-btn');
-    const suggestionUl = document.getElementById('suggestions');
-
+    // ──────────────────────────────────────────────────────────
+    // Search / Autocomplete
+    // ──────────────────────────────────────────────────────────
     let activeIdx = -1;
+    let currentSuggestions = [];
 
-    function renderSuggestions (term) {
+    // Debounce helper
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    async function fetchSuggestions(term) {
+      if (!term) {
+        closeSuggestions();
+        return;
+      }
+
+      // Show loading state
+      suggestionUl.innerHTML = '<li style="pointer-events: none; opacity: 0.6;">Searching...</li>';
+      suggestionUl.style.display = 'block';
+
+      // Get suggestions based on emoji fallbacks (always available)
+      const fallbackMatches = Object.keys(EMOJI_FALLBACKS)
+        .filter(key => key.includes(term.toLowerCase()))
+        .slice(0, 6)
+        .map(label => ({ label, icon: EMOJI_FALLBACKS[label] }));
+
+      currentSuggestions = fallbackMatches;
+      renderSuggestionsList(currentSuggestions);
+
+      // Try to fetch from API if available (enhances results)
+      if (apiKey) {
+        try {
+          const apiResults = await searchNounProjectIcons(term, 4);
+          if (apiResults.length > 0) {
+            const apiSuggestions = apiResults.map(icon => ({
+              label: icon.tags ? icon.tags[0] : icon.term,
+              icon: '🔍', // Placeholder icon for API results
+              apiIcon: icon.icon_url || icon.preview_url
+            }));
+            currentSuggestions = [...apiSuggestions, ...fallbackMatches].slice(0, 8);
+            renderSuggestionsList(currentSuggestions);
+          }
+        } catch (error) {
+          console.warn('API search failed, using fallbacks', error);
+        }
+      }
+    }
+
+    const debouncedFetchSuggestions = debounce(fetchSuggestions, 300);
+
+    function renderSuggestionsList(suggestions) {
       suggestionUl.innerHTML = '';
-      if (!term) { suggestionUl.style.display = 'none'; return; }
+      if (suggestions.length === 0) {
+        suggestionUl.style.display = 'none';
+        return;
+      }
 
-      const filtered = SUGGESTIONS_LIST
-        .filter(s => s.label.includes(term.toLowerCase()))
-        .slice(0, 8);
-
-      if (filtered.length === 0) { suggestionUl.style.display = 'none'; return; }
-
-      filtered.forEach((s, i) => {
+      suggestions.forEach((s, i) => {
         const li = document.createElement('li');
         li.textContent = s.icon + '  ' + s.label;
         li.dataset.label = s.label;
+        li.setAttribute('role', 'option');
+        li.setAttribute('aria-selected', i === activeIdx);
         li.addEventListener('mousedown', (e) => {
           e.preventDefault();
           searchInput.value = s.label;
           closeSuggestions();
           addBtn.disabled = false;
+          searchInput.focus();
         });
         suggestionUl.appendChild(li);
       });
@@ -545,12 +925,18 @@
     function closeSuggestions () {
       suggestionUl.style.display = 'none';
       activeIdx = -1;
+      currentSuggestions = [];
     }
 
     searchInput.addEventListener('input', () => {
       const val = searchInput.value.trim();
       addBtn.disabled = val.length === 0;
-      renderSuggestions(val);
+      
+      if (val.length > 0) {
+        debouncedFetchSuggestions(val);
+      } else {
+        closeSuggestions();
+      }
     });
 
     searchInput.addEventListener('keydown', (e) => {
@@ -558,16 +944,24 @@
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         activeIdx = Math.min(activeIdx + 1, items.length - 1);
-        items.forEach((li, i) => li.classList.toggle('active', i === activeIdx));
+        items.forEach((li, i) => {
+          li.classList.toggle('active', i === activeIdx);
+          li.setAttribute('aria-selected', i === activeIdx);
+        });
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         activeIdx = Math.max(activeIdx - 1, -1);
-        items.forEach((li, i) => li.classList.toggle('active', i === activeIdx));
+        items.forEach((li, i) => {
+          li.classList.toggle('active', i === activeIdx);
+          li.setAttribute('aria-selected', i === activeIdx);
+        });
       } else if (e.key === 'Enter') {
+        e.preventDefault();
         if (activeIdx >= 0 && items[activeIdx]) {
           searchInput.value = items[activeIdx].dataset.label;
           closeSuggestions();
           addBtn.disabled = false;
+          doAdd();
         } else {
           doAdd();
         }
@@ -589,10 +983,12 @@
       searchInput.value = '';
       addBtn.disabled = true;
       closeSuggestions();
-      searchInput.focus();
+      requestAnimationFrame(() => searchInput.focus());
     }
 
-    // ── Toast ──────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────
+    // Toast Notifications
+    // ──────────────────────────────────────────────────────────
     let toastTimer;
     function showToast (msg) {
       const t = document.getElementById('toast');
@@ -602,7 +998,9 @@
       toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
     }
 
-    // ── Bootstrap ─────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────
+    // Bootstrap / Initialize
+    // ──────────────────────────────────────────────────────────
     // Center the initial node
     nodes[0].x = width  / 2;
     nodes[0].y = height / 2;
