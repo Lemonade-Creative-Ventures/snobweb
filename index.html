@@ -477,6 +477,10 @@
     let nodes = [{ id: CENTER_ID, label: 'me', isCenter: true, x: 0, y: 0 }];
     let links = [];
     let colorIndex = 0;
+    
+    // SECURITY NOTE: localStorage is used for convenience in this demo app.
+    // For production, implement a secure backend proxy to handle API keys
+    // and avoid exposing them in client-side storage or network requests.
     let apiKey = localStorage.getItem(API_KEY_STORAGE) || '';
     let iconCache = new Map(); // Cache fetched icons
     let searchDebounceTimer;
@@ -503,16 +507,20 @@
     // API Functions
     // ──────────────────────────────────────────────────────────
     
-    // Note: The Noun Project API requires OAuth 2.0
-    // For a production app, you'd implement a backend proxy
-    // For now, we'll use CORS-enabled requests with API key if available
+    // SECURITY NOTE: The Noun Project API requires OAuth 2.0.
+    // This implementation is for DEMONSTRATION PURPOSES ONLY.
+    // For production:
+    // 1. Implement a secure backend proxy to handle API requests
+    // 2. Never expose API keys in client-side code
+    // 3. Use proper OAuth 2.0 authentication flow
+    // 4. Validate and sanitize all API responses
+    // The current direct API calls will fail due to CORS unless the API
+    // key has been configured to allow browser origins.
     
     async function searchNounProjectIcons(query, limit = 5) {
       if (!apiKey) return [];
       
       try {
-        // This is a simplified example - in production you'd use OAuth
-        // and likely proxy through your own backend to keep keys secure
         const url = `https://api.thenounproject.com/v2/icon?query=${encodeURIComponent(query)}&limit=${limit}`;
         
         const response = await fetch(url, {
@@ -542,14 +550,18 @@
       // Try to fetch from API
       if (apiKey) {
         const icons = await searchNounProjectIcons(term, 1);
-        if (icons.length > 0) {
-          const iconData = {
-            type: 'svg',
-            data: icons[0].icon_url || icons[0].preview_url,
-            id: icons[0].id
-          };
-          iconCache.set(term, iconData);
-          return iconData;
+        if (icons.length > 0 && icons[0]) {
+          const iconUrl = icons[0].icon_url || icons[0].preview_url;
+          // Only use API result if we have a valid URL
+          if (iconUrl) {
+            const iconData = {
+              type: 'svg',
+              data: iconUrl,
+              id: icons[0].id
+            };
+            iconCache.set(term, iconData);
+            return iconData;
+          }
         }
       }
 
@@ -847,7 +859,6 @@
       let timeout;
       return function executedFunction(...args) {
         const later = () => {
-          clearTimeout(timeout);
           func(...args);
         };
         clearTimeout(timeout);
@@ -879,11 +890,12 @@
         try {
           const apiResults = await searchNounProjectIcons(term, 4);
           if (apiResults.length > 0) {
-            const apiSuggestions = apiResults.map(icon => ({
-              label: icon.tags ? icon.tags[0] : icon.term,
-              icon: '🔍', // Placeholder icon for API results
-              apiIcon: icon.icon_url || icon.preview_url
-            }));
+            const apiSuggestions = apiResults
+              .filter(icon => icon && (icon.tags || icon.term)) // Validate response structure
+              .map(icon => ({
+                label: icon.tags?.[0] ?? icon.term ?? 'icon',
+                icon: '🔍' // Placeholder icon for API results
+              }));
             currentSuggestions = [...apiSuggestions, ...fallbackMatches].slice(0, 8);
             renderSuggestionsList(currentSuggestions);
           }
