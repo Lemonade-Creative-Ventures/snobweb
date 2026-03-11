@@ -490,6 +490,14 @@
           Get a free API key here
         </a> (no credit card required for 30 days).
       </p>
+      <p style="color: #e74c3c; font-size: 0.9em; margin-top: 10px;">
+        ⚠️ <strong>Security Warning:</strong> Credentials are stored in your browser and exposed in the page source. 
+        Only use this for personal projects on your own computer. Never share your credentials or use in production.
+      </p>
+      <p style="color: #f39c12; font-size: 0.85em; margin-top: 8px;">
+        ℹ️ <strong>CORS Note:</strong> The Noun Project API may block direct browser requests. 
+        If API calls fail, enable a CORS proxy in the code or use a browser extension for testing.
+      </p>
       <label for="api-key-input">API Key:</label>
       <input type="text" id="api-key-input" placeholder="Enter your Noun Project API key" />
       <label for="api-secret-input">API Secret:</label>
@@ -583,17 +591,14 @@
     const CENTER_ID = 'center';
     const API_KEY_STORAGE = 'nounproject_api_key';
     const API_SECRET_STORAGE = 'nounproject_api_secret';
-    // API Proxy URL - configure for your deployment
-    const API_PROXY_URL = window.NOUN_PROJECT_PROXY_URL || 'http://localhost:3000';
     
     let nodes = [{ id: CENTER_ID, label: 'me', isCenter: true, x: 0, y: 0 }];
     let links = [];
     let colorIndex = 0;
     
-    // SECURITY NOTE: In this demo, credentials are stored in localStorage to enable/disable
-    // the API integration UI. The actual API calls are made through a proxy server that
-    // uses environment variables for authentication. In production, consider removing
-    // client-side credential storage entirely if not needed for UI state.
+    // ⚠️ SECURITY WARNING: API credentials are stored in localStorage and exposed in browser
+    // This is ONLY suitable for personal use. DO NOT use in production or share credentials.
+    // For production apps, implement a secure backend proxy to handle API authentication.
     let apiKey = localStorage.getItem(API_KEY_STORAGE) || '';
     let apiSecret = localStorage.getItem(API_SECRET_STORAGE) || '';
     let iconCache = new Map(); // Cache fetched icons
@@ -621,24 +626,134 @@
     // API Functions
     // ──────────────────────────────────────────────────────────
     
-    // SECURITY NOTE: The Noun Project API requires OAuth 1.0a authentication.
-    // This demo uses a local proxy server (api-proxy.js) to handle OAuth signing.
-    // For production:
-    // 1. Deploy the proxy server to a secure backend (e.g., Vercel, Netlify Functions, AWS Lambda)
-    // 2. Store API credentials as environment variables on the server
-    // 3. Never expose API keys in client-side code
-    // 4. Implement rate limiting and request validation
-    // 5. Use HTTPS for all communications
+    // ⚠️ CRITICAL SECURITY WARNING ⚠️
+    // This implementation performs OAuth 1.0a signing directly in the browser.
+    // Your API credentials are exposed in client-side code and localStorage.
+    // 
+    // THIS IS ONLY SUITABLE FOR:
+    // - Personal use on your own computer
+    // - Development and testing
+    // - Learning purposes
+    //
+    // DO NOT USE IN PRODUCTION OR SHARE YOUR CREDENTIALS
+    // For production apps, use a backend proxy to keep credentials secure.
+    
+    // CORS LIMITATION:
+    // The Noun Project API blocks direct browser requests due to CORS policy.
+    // Options to work around this:
+    // 1. Use a browser extension that disables CORS (for local testing only)
+    // 2. Use a CORS proxy service like https://corsproxy.io/ (see below)
+    // 3. Deploy a backend proxy (recommended for production)
+    
+    // Optional: Use a CORS proxy for testing
+    // Set this to a CORS proxy URL to enable API calls from the browser
+    // Example: 'https://corsproxy.io/?'
+    const CORS_PROXY = '';  // Leave empty to call API directly
+    
+    // OAuth 1.0a Helper Functions
+    function generateNonce() {
+      const array = new Uint8Array(16);
+      crypto.getRandomValues(array);
+      return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+    
+    function generateTimestamp() {
+      return Math.floor(Date.now() / 1000).toString();
+    }
+    
+    function percentEncode(str) {
+      return encodeURIComponent(str)
+        .replace(/!/g, '%21')
+        .replace(/'/g, '%27')
+        .replace(/\(/g, '%28')
+        .replace(/\)/g, '%29')
+        .replace(/\*/g, '%2A');
+    }
+    
+    async function generateOAuthSignature(method, url, params, consumerSecret, tokenSecret = '') {
+      // Sort and encode parameters
+      const sortedParams = Object.keys(params)
+        .sort()
+        .map(key => `${percentEncode(key)}=${percentEncode(params[key])}`)
+        .join('&');
+      
+      // Create signature base string
+      const signatureBaseString = [
+        method.toUpperCase(),
+        percentEncode(url),
+        percentEncode(sortedParams)
+      ].join('&');
+      
+      // Create signing key
+      const signingKey = `${percentEncode(consumerSecret)}&${percentEncode(tokenSecret)}`;
+      
+      // Use Web Crypto API to generate HMAC-SHA1 signature
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(signingKey);
+      const messageData = encoder.encode(signatureBaseString);
+      
+      const key = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-1' },
+        false,
+        ['sign']
+      );
+      
+      const signature = await crypto.subtle.sign('HMAC', key, messageData);
+      const signatureArray = new Uint8Array(signature);
+      
+      // Convert to base64
+      let binary = '';
+      signatureArray.forEach(byte => binary += String.fromCharCode(byte));
+      return btoa(binary);
+    }
+    
+    async function generateOAuthHeader(method, url, queryParams) {
+      const oauthParams = {
+        oauth_consumer_key: apiKey,
+        oauth_signature_method: 'HMAC-SHA1',
+        oauth_timestamp: generateTimestamp(),
+        oauth_nonce: generateNonce(),
+        oauth_version: '1.0'
+      };
+      
+      // Combine OAuth params with query params for signature
+      const allParams = { ...oauthParams, ...queryParams };
+      
+      // Generate signature
+      const signature = await generateOAuthSignature(method, url, allParams, apiSecret);
+      oauthParams.oauth_signature = signature;
+      
+      // Build OAuth header
+      const oauthHeader = 'OAuth ' + Object.keys(oauthParams)
+        .map(key => `${percentEncode(key)}="${percentEncode(oauthParams[key])}"`)
+        .join(', ');
+      
+      return oauthHeader;
+    }
     
     async function searchNounProjectIcons(query, limit = 5) {
       if (!apiKey || !apiSecret) return [];
       
       try {
-        // Use proxy server for OAuth 1.0a authentication
-        // The proxy server handles the complex OAuth signing required by Noun Project API
-        const proxyUrl = `${API_PROXY_URL}/api/search?query=${encodeURIComponent(query)}&limit=${limit}`;
+        const baseUrl = 'https://api.thenounproject.com/v2/icon';
+        const queryParams = { query, limit: limit.toString() };
+        const queryString = new URLSearchParams(queryParams).toString();
         
-        const response = await fetch(proxyUrl);
+        // Use CORS proxy if configured, otherwise call API directly
+        const apiUrl = `${baseUrl}?${queryString}`;
+        const fetchUrl = CORS_PROXY ? `${CORS_PROXY}${encodeURIComponent(apiUrl)}` : apiUrl;
+        
+        // Generate OAuth 1.0a authorization header
+        const authHeader = await generateOAuthHeader('GET', baseUrl, queryParams);
+        
+        const response = await fetch(fetchUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': authHeader
+          }
+        });
 
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
