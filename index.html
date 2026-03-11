@@ -646,6 +646,10 @@
     // 3. Deploy a backend proxy (recommended for production)
     
     // Optional: Use a CORS proxy for testing
+    // ⚠️ SECURITY WARNING: Using untrusted CORS proxy services exposes your OAuth
+    // signatures and API requests to third parties. Only use trusted proxy services
+    // or deploy your own. Public proxies may log, modify, or rate-limit your requests.
+    // 
     // Set this to a CORS proxy URL to enable API calls from the browser
     // Example: 'https://corsproxy.io/?'
     const CORS_PROXY = '';  // Leave empty to call API directly
@@ -704,8 +708,7 @@
       const signatureArray = new Uint8Array(signature);
       
       // Convert to base64
-      let binary = '';
-      signatureArray.forEach(byte => binary += String.fromCharCode(byte));
+      const binary = String.fromCharCode(...signatureArray);
       return btoa(binary);
     }
     
@@ -865,7 +868,7 @@
         localStorage.removeItem(API_SECRET_STORAGE);
         showToast('API credentials removed. Using emoji fallbacks.');
       } else {
-        showToast('Please enter both API key and secret, or clear both fields.');
+        showToast('Both API key and secret are required to connect to the API. Please fill in both fields or leave both empty to use emoji fallbacks.');
         return; // Don't close modal if only one field is filled
       }
       

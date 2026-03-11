@@ -27,7 +27,7 @@ This app supports optional integration with The Noun Project API to display real
 Since the API blocks direct browser calls, you have several options:
 
 #### Option 1: Use a CORS Proxy (Simplest for Testing)
-Edit `index.html` and set the CORS_PROXY constant (around line 647):
+Edit `index.html` and locate the `CORS_PROXY` constant in the "API Functions" section:
 ```javascript
 const CORS_PROXY = 'https://corsproxy.io/?';
 ```

@@ -1,14 +1,29 @@
-# Noun Project API Proxy
+# Noun Project API Proxy (Optional Backend)
 
-This is a simple proxy server that handles OAuth 1.0a authentication for the Noun Project API.
+⚠️ **NOTE**: As of the latest update, the main `index.html` now performs OAuth 1.0a signing directly in the browser, making this proxy server **optional**.
 
-## Why is this needed?
+## When to Use This Proxy
 
-The Noun Project API requires OAuth 1.0a authentication, which involves cryptographically signing each request. This cannot be done securely in a browser without exposing your API credentials. This proxy server:
+Use this proxy server if you need:
+- **Production deployment** with secure credential management
+- **Better security** - credentials stay on server, not in browser
+- **No CORS issues** - proxy handles API communication
+- **Rate limiting and monitoring** capabilities
 
-1. Keeps your API credentials secure on the server
-2. Handles OAuth 1.0a signing for you
-3. Provides CORS headers so the browser can make requests
+For personal/development use, the static HTML file works standalone (with CORS workarounds documented in README.md).
+
+## Why Use a Proxy?
+
+The Noun Project API requires OAuth 1.0a authentication, which involves cryptographically signing each request. While the browser can do this, it means:
+- ❌ API credentials exposed in browser localStorage and page source
+- ❌ Anyone with access to your computer can steal credentials
+- ❌ CORS restrictions block direct API calls from browsers
+
+This proxy server:
+- ✅ Keeps your API credentials secure on the server
+- ✅ Handles OAuth 1.0a signing server-side
+- ✅ Provides CORS headers so the browser can make requests
+- ✅ Suitable for production deployment
 
 ## Usage
 
@@ -27,7 +42,7 @@ node api-proxy.js
 
 3. The server will run on http://localhost:3000
 
-4. Open index.html in a browser and enter dummy credentials in the settings (they won't be used, just needed to enable the "API Connected" status)
+4. Update index.html to use the proxy by uncommenting the proxy code (see comments in file)
 
 ### Production Deployment
 
