@@ -103,7 +103,6 @@
       position: fixed;
       inset: 0;
       top: 53px; /* header height */
-      cursor: pointer;
     }
 
     /* ── D3 elements ─────────────────────────────────────────── */
@@ -475,8 +474,8 @@
   <svg id="canvas" width="100%" height="100%" role="img" aria-label="Force-directed graph visualization"></svg>
 
   <div id="empty-hint" aria-live="polite">
-    Click anywhere on the canvas or press <strong>+ Add</strong> to start building<br>
-    your web of snobbiness.
+    Click anywhere on the canvas, press <strong>+ Add</strong>, or use <strong>Ctrl+K</strong><br>
+    to start building your web of snobbiness.
   </div>
 
   <div id="toast" role="alert" aria-live="assertive"></div>
@@ -1177,7 +1176,7 @@
 
     // Close suggestions when clicking outside
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('#add-modal')) {
+      if (!e.target.closest('.search-input-container')) {
         closeAddModalSuggestions();
       }
     });
@@ -1196,6 +1195,16 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && addModalOverlay.classList.contains('show')) {
         closeAddModal();
+      }
+      // Keyboard shortcut to open add modal (Ctrl/Cmd + K or '+' key)
+      if (!addModalOverlay.classList.contains('show') && !modalOverlay.classList.contains('show')) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+          e.preventDefault();
+          openAddModal();
+        } else if (e.key === '+' && !e.target.matches('input, textarea')) {
+          e.preventDefault();
+          openAddModal();
+        }
       }
     });
 
