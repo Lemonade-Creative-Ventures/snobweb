@@ -529,11 +529,11 @@
           <span class="snob-level" id="snob-level-text">Select your snobbery</span>
         </div>
         <div class="snob-meter">
-          <div class="snob-icon" data-level="1" data-label="Curious" title="Curious Dabbler" tabindex="0" role="button" aria-label="Curious Dabbler">🤔</div>
-          <div class="snob-icon" data-level="2" data-label="Interested" title="Interested Enthusiast" tabindex="0" role="button" aria-label="Interested Enthusiast">😊</div>
-          <div class="snob-icon" data-level="3" data-label="Opinionated" title="Opinionated Connoisseur" tabindex="0" role="button" aria-label="Opinionated Connoisseur">🧐</div>
-          <div class="snob-icon" data-level="4" data-label="Discerning" title="Discerning Expert" tabindex="0" role="button" aria-label="Discerning Expert">👓</div>
-          <div class="snob-icon" data-level="5" data-label="Insufferable" title="Insufferable Snob" tabindex="0" role="button" aria-label="Insufferable Snob">🎩</div>
+          <div class="snob-icon" data-level="1" data-label="Curious Dabbler" title="Curious Dabbler" tabindex="0" role="button" aria-label="Curious Dabbler">🤔</div>
+          <div class="snob-icon" data-level="2" data-label="Interested Enthusiast" title="Interested Enthusiast" tabindex="0" role="button" aria-label="Interested Enthusiast">😊</div>
+          <div class="snob-icon" data-level="3" data-label="Opinionated Connoisseur" title="Opinionated Connoisseur" tabindex="0" role="button" aria-label="Opinionated Connoisseur">🧐</div>
+          <div class="snob-icon" data-level="4" data-label="Discerning Expert" title="Discerning Expert" tabindex="0" role="button" aria-label="Discerning Expert">👓</div>
+          <div class="snob-icon" data-level="5" data-label="Insufferable Snob" title="Insufferable Snob" tabindex="0" role="button" aria-label="Insufferable Snob">🎩</div>
         </div>
       </div>
       
@@ -1048,6 +1048,7 @@
       
       // Keyboard support for snob level icons
       icon.addEventListener('keydown', (e) => {
+        // Check for Enter key or Space key (spacebar)
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           selectLevel();
