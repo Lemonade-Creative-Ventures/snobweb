@@ -583,14 +583,17 @@
     const CENTER_ID = 'center';
     const API_KEY_STORAGE = 'nounproject_api_key';
     const API_SECRET_STORAGE = 'nounproject_api_secret';
+    // API Proxy URL - configure for your deployment
+    const API_PROXY_URL = window.NOUN_PROJECT_PROXY_URL || 'http://localhost:3000';
     
     let nodes = [{ id: CENTER_ID, label: 'me', isCenter: true, x: 0, y: 0 }];
     let links = [];
     let colorIndex = 0;
     
-    // SECURITY NOTE: localStorage is used for convenience in this demo app.
-    // For production, implement a secure backend proxy to handle API keys
-    // and avoid exposing them in client-side storage or network requests.
+    // SECURITY NOTE: In this demo, credentials are stored in localStorage to enable/disable
+    // the API integration UI. The actual API calls are made through a proxy server that
+    // uses environment variables for authentication. In production, consider removing
+    // client-side credential storage entirely if not needed for UI state.
     let apiKey = localStorage.getItem(API_KEY_STORAGE) || '';
     let apiSecret = localStorage.getItem(API_SECRET_STORAGE) || '';
     let iconCache = new Map(); // Cache fetched icons
@@ -633,7 +636,7 @@
       try {
         // Use proxy server for OAuth 1.0a authentication
         // The proxy server handles the complex OAuth signing required by Noun Project API
-        const proxyUrl = `http://localhost:3000/api/search?query=${encodeURIComponent(query)}&limit=${limit}`;
+        const proxyUrl = `${API_PROXY_URL}/api/search?query=${encodeURIComponent(query)}&limit=${limit}`;
         
         const response = await fetch(proxyUrl);
 

@@ -8,9 +8,12 @@ const crypto = require('crypto');
 const url = require('url');
 
 // SECURITY NOTE: In production, these should be environment variables, not hardcoded
-const API_KEY = process.env.NOUN_PROJECT_KEY || '';
-const API_SECRET = process.env.NOUN_PROJECT_SECRET || '';
+// Server will fail to start if credentials are not configured
+const API_KEY = process.env.NOUN_PROJECT_KEY;
+const API_SECRET = process.env.NOUN_PROJECT_SECRET;
 const PORT = process.env.PORT || 3000;
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:8000'];
+const NOUN_PROJECT_API_BASE = 'https://api.thenounproject.com/v2/icon';
 
 // OAuth 1.0a signing function
 function generateOAuthSignature(method, baseUrl, params, consumerSecret, tokenSecret = '') {
@@ -66,8 +69,14 @@ function generateOAuthHeader(method, apiUrl, queryParams = {}) {
 
 // Proxy server
 const server = http.createServer((req, res) => {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS configuration - restrict to allowed origins
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (ALLOWED_ORIGINS.includes('*')) {
+    // Only allow wildcard if explicitly configured
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -112,13 +121,12 @@ const server = http.createServer((req, res) => {
   }
 
   // Prepare Noun Project API request
-  const apiBaseUrl = 'https://api.thenounproject.com/v2/icon';
   const queryParams = { query, limit };
   const queryString = new URLSearchParams(queryParams).toString();
-  const apiUrl = `${apiBaseUrl}?${queryString}`;
+  const apiUrl = `${NOUN_PROJECT_API_BASE}?${queryString}`;
 
   // Generate OAuth header
-  const oauthHeader = generateOAuthHeader('GET', apiBaseUrl, queryParams);
+  const oauthHeader = generateOAuthHeader('GET', NOUN_PROJECT_API_BASE, queryParams);
 
   // Make request to Noun Project API
   const options = {

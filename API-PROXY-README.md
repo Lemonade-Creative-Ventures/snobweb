@@ -38,7 +38,22 @@ For production, deploy this proxy to a serverless function or backend service:
 - **AWS Lambda**: Deploy with API Gateway
 - **Heroku/Railway**: Deploy as a Node.js app
 
-Update the `proxyUrl` in `index.html` to point to your deployed proxy server.
+**Environment Variables:**
+- `NOUN_PROJECT_KEY`: Your API key (required)
+- `NOUN_PROJECT_SECRET`: Your API secret (required)
+- `PORT`: Server port (optional, default: 3000)
+- `ALLOWED_ORIGINS`: Comma-separated list of allowed origins for CORS (optional, default: http://localhost:8000)
+
+**Configure the client:**
+
+Add a script tag before the closing `</body>` tag in `index.html`:
+```html
+<script>
+  window.NOUN_PROJECT_PROXY_URL = 'https://your-proxy-domain.com';
+</script>
+```
+
+Or set it as a build-time environment variable.
 
 ## API Endpoint
 
