@@ -485,13 +485,23 @@
     <div id="modal">
       <h2 id="modal-title">Noun Project API Settings</h2>
       <p>
-        To display real SVG icons from The Noun Project, you need an API key. 
+        To display real SVG icons from The Noun Project, you need an API key and secret. 
         <a id="api-link" href="https://thenounproject.com/developers/apps/" target="_blank" rel="noopener noreferrer">
           Get a free API key here
         </a> (no credit card required for 30 days).
       </p>
+      <p style="color: #e74c3c; font-size: 0.9em; margin-top: 10px;">
+        ⚠️ <strong>Security Warning:</strong> Credentials are stored in your browser and exposed in the page source. 
+        Only use this for personal projects on your own computer. Never share your credentials or use in production.
+      </p>
+      <p style="color: #f39c12; font-size: 0.85em; margin-top: 8px;">
+        ℹ️ <strong>CORS Note:</strong> The Noun Project API may block direct browser requests. 
+        If API calls fail, enable a CORS proxy in the code or use a browser extension for testing.
+      </p>
       <label for="api-key-input">API Key:</label>
       <input type="text" id="api-key-input" placeholder="Enter your Noun Project API key" />
+      <label for="api-secret-input">API Secret:</label>
+      <input type="password" id="api-secret-input" placeholder="Enter your Noun Project API secret" />
       <div id="modal-actions">
         <button id="cancel-btn">Cancel</button>
         <button id="save-api-key">Save</button>
@@ -580,15 +590,17 @@
     const HEADER_H = 53;
     const CENTER_ID = 'center';
     const API_KEY_STORAGE = 'nounproject_api_key';
+    const API_SECRET_STORAGE = 'nounproject_api_secret';
     
     let nodes = [{ id: CENTER_ID, label: 'me', isCenter: true, x: 0, y: 0 }];
     let links = [];
     let colorIndex = 0;
     
-    // SECURITY NOTE: localStorage is used for convenience in this demo app.
-    // For production, implement a secure backend proxy to handle API keys
-    // and avoid exposing them in client-side storage or network requests.
+    // ⚠️ SECURITY WARNING: API credentials are stored in localStorage and exposed in browser
+    // This is ONLY suitable for personal use. DO NOT use in production or share credentials.
+    // For production apps, implement a secure backend proxy to handle API authentication.
     let apiKey = localStorage.getItem(API_KEY_STORAGE) || '';
+    let apiSecret = localStorage.getItem(API_SECRET_STORAGE) || '';
     let iconCache = new Map(); // Cache fetched icons
     let searchDebounceTimer;
 
@@ -614,25 +626,135 @@
     // API Functions
     // ──────────────────────────────────────────────────────────
     
-    // SECURITY NOTE: The Noun Project API requires OAuth 2.0.
-    // This implementation is for DEMONSTRATION PURPOSES ONLY.
-    // For production:
-    // 1. Implement a secure backend proxy to handle API requests
-    // 2. Never expose API keys in client-side code
-    // 3. Use proper OAuth 2.0 authentication flow
-    // 4. Validate and sanitize all API responses
-    // The current direct API calls will fail due to CORS unless the API
-    // key has been configured to allow browser origins.
+    // ⚠️ CRITICAL SECURITY WARNING ⚠️
+    // This implementation performs OAuth 1.0a signing directly in the browser.
+    // Your API credentials are exposed in client-side code and localStorage.
+    // 
+    // THIS IS ONLY SUITABLE FOR:
+    // - Personal use on your own computer
+    // - Development and testing
+    // - Learning purposes
+    //
+    // DO NOT USE IN PRODUCTION OR SHARE YOUR CREDENTIALS
+    // For production apps, use a backend proxy to keep credentials secure.
+    
+    // CORS LIMITATION:
+    // The Noun Project API blocks direct browser requests due to CORS policy.
+    // Options to work around this:
+    // 1. Use a browser extension that disables CORS (for local testing only)
+    // 2. Use a CORS proxy service like https://corsproxy.io/ (see below)
+    // 3. Deploy a backend proxy (recommended for production)
+    
+    // Optional: Use a CORS proxy for testing
+    // ⚠️ SECURITY WARNING: Using untrusted CORS proxy services exposes your OAuth
+    // signatures and API requests to third parties. Only use trusted proxy services
+    // or deploy your own. Public proxies may log, modify, or rate-limit your requests.
+    // 
+    // Set this to a CORS proxy URL to enable API calls from the browser
+    // Example: 'https://corsproxy.io/?'
+    const CORS_PROXY = '';  // Leave empty to call API directly
+    
+    // OAuth 1.0a Helper Functions
+    function generateNonce() {
+      const array = new Uint8Array(16);
+      crypto.getRandomValues(array);
+      return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+    
+    function generateTimestamp() {
+      return Math.floor(Date.now() / 1000).toString();
+    }
+    
+    function percentEncode(str) {
+      return encodeURIComponent(str)
+        .replace(/!/g, '%21')
+        .replace(/'/g, '%27')
+        .replace(/\(/g, '%28')
+        .replace(/\)/g, '%29')
+        .replace(/\*/g, '%2A');
+    }
+    
+    async function generateOAuthSignature(method, url, params, consumerSecret, tokenSecret = '') {
+      // Sort and encode parameters
+      const sortedParams = Object.keys(params)
+        .sort()
+        .map(key => `${percentEncode(key)}=${percentEncode(params[key])}`)
+        .join('&');
+      
+      // Create signature base string
+      const signatureBaseString = [
+        method.toUpperCase(),
+        percentEncode(url),
+        percentEncode(sortedParams)
+      ].join('&');
+      
+      // Create signing key
+      const signingKey = `${percentEncode(consumerSecret)}&${percentEncode(tokenSecret)}`;
+      
+      // Use Web Crypto API to generate HMAC-SHA1 signature
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(signingKey);
+      const messageData = encoder.encode(signatureBaseString);
+      
+      const key = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-1' },
+        false,
+        ['sign']
+      );
+      
+      const signature = await crypto.subtle.sign('HMAC', key, messageData);
+      const signatureArray = new Uint8Array(signature);
+      
+      // Convert to base64
+      const binary = String.fromCharCode(...signatureArray);
+      return btoa(binary);
+    }
+    
+    async function generateOAuthHeader(method, url, queryParams) {
+      const oauthParams = {
+        oauth_consumer_key: apiKey,
+        oauth_signature_method: 'HMAC-SHA1',
+        oauth_timestamp: generateTimestamp(),
+        oauth_nonce: generateNonce(),
+        oauth_version: '1.0'
+      };
+      
+      // Combine OAuth params with query params for signature
+      const allParams = { ...oauthParams, ...queryParams };
+      
+      // Generate signature
+      const signature = await generateOAuthSignature(method, url, allParams, apiSecret);
+      oauthParams.oauth_signature = signature;
+      
+      // Build OAuth header
+      const oauthHeader = 'OAuth ' + Object.keys(oauthParams)
+        .map(key => `${percentEncode(key)}="${percentEncode(oauthParams[key])}"`)
+        .join(', ');
+      
+      return oauthHeader;
+    }
     
     async function searchNounProjectIcons(query, limit = 5) {
-      if (!apiKey) return [];
+      if (!apiKey || !apiSecret) return [];
       
       try {
-        const url = `https://api.thenounproject.com/v2/icon?query=${encodeURIComponent(query)}&limit=${limit}`;
+        const baseUrl = 'https://api.thenounproject.com/v2/icon';
+        const queryParams = { query, limit: limit.toString() };
+        const queryString = new URLSearchParams(queryParams).toString();
         
-        const response = await fetch(url, {
+        // Use CORS proxy if configured, otherwise call API directly
+        const apiUrl = `${baseUrl}?${queryString}`;
+        const fetchUrl = CORS_PROXY ? `${CORS_PROXY}${encodeURIComponent(apiUrl)}` : apiUrl;
+        
+        // Generate OAuth 1.0a authorization header
+        const authHeader = await generateOAuthHeader('GET', baseUrl, queryParams);
+        
+        const response = await fetch(fetchUrl, {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${apiKey}`,
+            'Authorization': authHeader
           }
         });
 
@@ -655,7 +777,7 @@
       }
 
       // Try to fetch from API
-      if (apiKey) {
+      if (apiKey && apiSecret) {
         const icons = await searchNounProjectIcons(term, 1);
         if (icons.length > 0 && icons[0]) {
           const iconUrl = icons[0].icon_url || icons[0].preview_url;
@@ -685,6 +807,7 @@
     const settingsBtn  = document.getElementById('settings-btn');
     const modalOverlay = document.getElementById('modal-overlay');
     const apiKeyInput  = document.getElementById('api-key-input');
+    const apiSecretInput = document.getElementById('api-secret-input');
     const saveApiKeyBtn = document.getElementById('save-api-key');
     const cancelBtn    = document.getElementById('cancel-btn');
     const apiStatus    = document.getElementById('api-status');
@@ -704,7 +827,7 @@
     // Settings Modal
     // ──────────────────────────────────────────────────────────
     function updateApiStatus() {
-      if (apiKey) {
+      if (apiKey && apiSecret) {
         apiStatus.className = 'active';
         apiStatus.textContent = '● API Connected';
       } else {
@@ -715,6 +838,7 @@
 
     settingsBtn.addEventListener('click', () => {
       apiKeyInput.value = apiKey;
+      apiSecretInput.value = apiSecret;
       modalOverlay.classList.add('show');
       apiKeyInput.focus();
     });
@@ -731,15 +855,24 @@
 
     saveApiKeyBtn.addEventListener('click', () => {
       const newKey = apiKeyInput.value.trim();
+      const newSecret = apiSecretInput.value.trim();
       apiKey = newKey;
-      if (newKey) {
+      apiSecret = newSecret;
+      
+      if (newKey && newSecret) {
         localStorage.setItem(API_KEY_STORAGE, newKey);
-        showToast('API key saved successfully!');
-      } else {
+        localStorage.setItem(API_SECRET_STORAGE, newSecret);
+        showToast('API credentials saved successfully!');
+      } else if (!newKey && !newSecret) {
         localStorage.removeItem(API_KEY_STORAGE);
-        showToast('API key removed. Using emoji fallbacks.');
+        localStorage.removeItem(API_SECRET_STORAGE);
+        showToast('API credentials removed. Using emoji fallbacks.');
+      } else {
+        showToast('Both API key and secret are required to connect to the API. Please fill in both fields or leave both empty to use emoji fallbacks.');
+        return; // Don't close modal if only one field is filled
       }
-      iconCache.clear(); // Clear cache when API key changes
+      
+      iconCache.clear(); // Clear cache when API credentials change
       updateApiStatus();
       modalOverlay.classList.remove('show');
     });
@@ -1092,7 +1225,7 @@
       renderAddModalSuggestionsList(addModalCurrentSuggestions);
 
       // Try to fetch from API if available
-      if (apiKey) {
+      if (apiKey && apiSecret) {
         try {
           const apiResults = await searchNounProjectIcons(term, 4);
           if (apiResults.length > 0) {
