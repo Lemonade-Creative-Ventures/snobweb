@@ -618,31 +618,24 @@
     // API Functions
     // ──────────────────────────────────────────────────────────
     
-    // SECURITY NOTE: The Noun Project API requires OAuth 2.0.
-    // This implementation is for DEMONSTRATION PURPOSES ONLY.
+    // SECURITY NOTE: The Noun Project API requires OAuth 1.0a authentication.
+    // This demo uses a local proxy server (api-proxy.js) to handle OAuth signing.
     // For production:
-    // 1. Implement a secure backend proxy to handle API requests
-    // 2. Never expose API keys in client-side code
-    // 3. Use proper OAuth 2.0 authentication flow
-    // 4. Validate and sanitize all API responses
-    // The current direct API calls will fail due to CORS unless the API
-    // key has been configured to allow browser origins.
+    // 1. Deploy the proxy server to a secure backend (e.g., Vercel, Netlify Functions, AWS Lambda)
+    // 2. Store API credentials as environment variables on the server
+    // 3. Never expose API keys in client-side code
+    // 4. Implement rate limiting and request validation
+    // 5. Use HTTPS for all communications
     
     async function searchNounProjectIcons(query, limit = 5) {
       if (!apiKey || !apiSecret) return [];
       
       try {
-        const url = `https://api.thenounproject.com/v2/icon?query=${encodeURIComponent(query)}&limit=${limit}`;
+        // Use proxy server for OAuth 1.0a authentication
+        // The proxy server handles the complex OAuth signing required by Noun Project API
+        const proxyUrl = `http://localhost:3000/api/search?query=${encodeURIComponent(query)}&limit=${limit}`;
         
-        // Noun Project API v2 uses OAuth 2.0 with Basic Authentication
-        // Encode API key and secret as Base64 for Basic Auth
-        const credentials = btoa(`${apiKey}:${apiSecret}`);
-        
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Basic ${credentials}`,
-          }
-        });
+        const response = await fetch(proxyUrl);
 
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
