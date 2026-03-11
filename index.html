@@ -103,7 +103,7 @@
       position: fixed;
       inset: 0;
       top: 53px; /* header height */
-      cursor: crosshair;
+      cursor: pointer;
     }
 
     /* ── D3 elements ─────────────────────────────────────────── */
@@ -530,11 +530,11 @@
           <span class="snob-level" id="snob-level-text">Select your snobbery</span>
         </div>
         <div class="snob-meter">
-          <div class="snob-icon" data-level="1" data-label="Curious" title="Curious Dabbler">🤔</div>
-          <div class="snob-icon" data-level="2" data-label="Interested" title="Interested Enthusiast">😊</div>
-          <div class="snob-icon" data-level="3" data-label="Opinionated" title="Opinionated Connoisseur">🧐</div>
-          <div class="snob-icon" data-level="4" data-label="Discerning" title="Discerning Expert">👓</div>
-          <div class="snob-icon" data-level="5" data-label="Insufferable" title="Insufferable Snob">🎩</div>
+          <div class="snob-icon" data-level="1" data-label="Curious" title="Curious Dabbler" tabindex="0" role="button" aria-label="Curious Dabbler">🤔</div>
+          <div class="snob-icon" data-level="2" data-label="Interested" title="Interested Enthusiast" tabindex="0" role="button" aria-label="Interested Enthusiast">😊</div>
+          <div class="snob-icon" data-level="3" data-label="Opinionated" title="Opinionated Connoisseur" tabindex="0" role="button" aria-label="Opinionated Connoisseur">🧐</div>
+          <div class="snob-icon" data-level="4" data-label="Discerning" title="Discerning Expert" tabindex="0" role="button" aria-label="Discerning Expert">👓</div>
+          <div class="snob-icon" data-level="5" data-label="Insufferable" title="Insufferable Snob" tabindex="0" role="button" aria-label="Insufferable Snob">🎩</div>
         </div>
       </div>
       
@@ -1022,7 +1022,7 @@
     // Open modal on canvas click (but not on nodes)
     svgEl.addEventListener('click', (e) => {
       // Only trigger if clicking directly on canvas, not on a node
-      if (e.target === svgEl || e.target.tagName === 'svg') {
+      if (e.target === svgEl) {
         openAddModal();
       }
     });
@@ -1037,12 +1037,22 @@
 
     // Snob level selection
     snobIcons.forEach(icon => {
-      icon.addEventListener('click', () => {
+      const selectLevel = () => {
         snobIcons.forEach(i => i.classList.remove('selected'));
         icon.classList.add('selected');
-        selectedSnobLevel = parseInt(icon.dataset.level);
+        selectedSnobLevel = parseInt(icon.dataset.level, 10);
         snobLevelText.textContent = icon.dataset.label;
         validateAddModalForm();
+      };
+      
+      icon.addEventListener('click', selectLevel);
+      
+      // Keyboard support for snob level icons
+      icon.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectLevel();
+        }
       });
     });
 
