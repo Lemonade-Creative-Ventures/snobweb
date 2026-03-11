@@ -80,7 +80,7 @@
     #search-input:focus { border-color: var(--accent); }
     #search-input::placeholder { color: var(--muted); }
 
-    #add-btn {
+    #add-btn, #header-add-btn {
       background: var(--accent);
       border: none;
       border-radius: 4px;
@@ -94,39 +94,16 @@
       transition: opacity 0.15s, transform 0.1s;
       white-space: nowrap;
     }
-    #add-btn:hover  { opacity: 0.85; }
-    #add-btn:active { transform: scale(0.96); }
+    #add-btn:hover, #header-add-btn:hover  { opacity: 0.85; }
+    #add-btn:active, #header-add-btn:active { transform: scale(0.96); }
     #add-btn:disabled { opacity: 0.35; cursor: default; transform: none; }
-
-    /* Autocomplete dropdown */
-    #suggestions {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      right: 0;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      list-style: none;
-      max-height: 200px;
-      overflow-y: auto;
-      z-index: 100;
-      display: none;
-    }
-    #suggestions li {
-      cursor: pointer;
-      font-size: 0.85rem;
-      padding: 0.4rem 0.75rem;
-      transition: background 0.1s;
-    }
-    #suggestions li:hover,
-    #suggestions li.active { background: var(--border); }
 
     /* ── Canvas ──────────────────────────────────────────────── */
     #canvas {
       position: fixed;
       inset: 0;
       top: 53px; /* header height */
+      cursor: crosshair;
     }
 
     /* ── D3 elements ─────────────────────────────────────────── */
@@ -251,7 +228,7 @@
     }
 
     /* ── Modal ──────────────────────────────────────────────── */
-    #modal-overlay {
+    #modal-overlay, #add-modal-overlay {
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.8);
@@ -261,9 +238,9 @@
       z-index: 1000;
       backdrop-filter: blur(4px);
     }
-    #modal-overlay.show { display: flex; }
+    #modal-overlay.show, #add-modal-overlay.show { display: flex; }
 
-    #modal {
+    #modal, #add-modal {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -273,27 +250,27 @@
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     }
 
-    #modal h2 {
+    #modal h2, #add-modal h2 {
       color: var(--accent);
       font-size: 1.3rem;
       margin-bottom: 0.5rem;
     }
 
-    #modal p {
+    #modal p, #add-modal p {
       color: var(--muted);
       font-size: 0.85rem;
       line-height: 1.5;
       margin-bottom: 1.5rem;
     }
 
-    #modal label {
+    #modal label, #add-modal label {
       display: block;
       color: var(--text);
       font-size: 0.9rem;
       margin-bottom: 0.5rem;
     }
 
-    #modal input[type="text"] {
+    #modal input[type="text"], #add-modal input[type="text"] {
       width: 100%;
       background: var(--bg);
       border: 1px solid var(--border);
@@ -304,18 +281,108 @@
       padding: 0.6rem;
       margin-bottom: 1.5rem;
     }
-    #modal input[type="text"]:focus {
+    #modal input[type="text"]:focus, #add-modal input[type="text"]:focus {
       outline: none;
       border-color: var(--accent);
     }
 
-    #modal-actions {
+    #add-modal textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 0.6rem;
+      margin-bottom: 1.5rem;
+      min-height: 80px;
+      resize: vertical;
+    }
+    #add-modal textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    #add-modal-suggestions {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      list-style: none;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 100;
+      display: none;
+    }
+    #add-modal-suggestions li {
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 0.4rem 0.75rem;
+      transition: background 0.1s;
+    }
+    #add-modal-suggestions li:hover,
+    #add-modal-suggestions li.active { background: var(--border); }
+
+    .snob-meter-container {
+      margin-bottom: 1.5rem;
+    }
+    
+    .snob-meter-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.8rem;
+    }
+
+    .snob-level {
+      color: var(--accent);
+      font-size: 0.9rem;
+      font-style: italic;
+    }
+
+    .snob-meter {
+      display: flex;
+      gap: 0.4rem;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .snob-icon {
+      width: 40px;
+      height: 40px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--bg);
+    }
+
+    .snob-icon:hover {
+      border-color: var(--accent);
+      transform: scale(1.1);
+    }
+
+    .snob-icon.selected {
+      border-color: var(--accent);
+      background: rgba(201, 169, 110, 0.15);
+      transform: scale(1.15);
+    }
+
+    #modal-actions, #add-modal-actions {
       display: flex;
       gap: 0.75rem;
       justify-content: flex-end;
     }
 
-    #modal button {
+    #modal button, #add-modal button {
       padding: 0.6rem 1.2rem;
       border-radius: 4px;
       border: none;
@@ -326,18 +393,19 @@
       transition: all 0.15s;
     }
 
-    #save-api-key {
+    #save-api-key, #add-modal-submit {
       background: var(--accent);
       color: var(--bg);
     }
-    #save-api-key:hover { opacity: 0.85; }
+    #save-api-key:hover, #add-modal-submit:hover { opacity: 0.85; }
+    #add-modal-submit:disabled { opacity: 0.35; cursor: default; }
 
-    #cancel-btn {
+    #cancel-btn, #add-modal-cancel {
       background: transparent;
       border: 1px solid var(--border);
       color: var(--text);
     }
-    #cancel-btn:hover {
+    #cancel-btn:hover, #add-modal-cancel:hover {
       border-color: var(--accent);
       color: var(--accent);
     }
@@ -347,6 +415,10 @@
       text-decoration: none;
     }
     #api-link:hover { text-decoration: underline; }
+
+    .search-input-container {
+      position: relative;
+    }
 
     /* ── Loading Indicator ─────────────────────────────────── */
     .loading {
@@ -395,16 +467,7 @@
     <span class="tagline">the web of your snobbiness</span>
     <div id="api-status" aria-live="polite"></div>
     <div class="search-area">
-      <input
-        id="search-input"
-        type="text"
-        placeholder="I'm a snob about…"
-        autocomplete="off"
-        spellcheck="false"
-        aria-label="Search for nouns"
-      />
-      <ul id="suggestions" role="listbox"></ul>
-      <button id="add-btn" disabled aria-label="Add item to canvas">Add</button>
+      <button id="header-add-btn" aria-label="Add item to canvas">+ Add</button>
       <button id="settings-btn" aria-label="Settings" title="API Settings">⚙</button>
     </div>
   </header>
@@ -412,8 +475,8 @@
   <svg id="canvas" width="100%" height="100%" role="img" aria-label="Force-directed graph visualization"></svg>
 
   <div id="empty-hint" aria-live="polite">
-    Search for something you're a snob about and click <strong>Add</strong><br>
-    to start weaving your web.
+    Click anywhere on the canvas or press <strong>+ Add</strong> to start building<br>
+    your web of snobbiness.
   </div>
 
   <div id="toast" role="alert" aria-live="assertive"></div>
@@ -433,6 +496,51 @@
       <div id="modal-actions">
         <button id="cancel-btn">Cancel</button>
         <button id="save-api-key">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Item Modal -->
+  <div id="add-modal-overlay" role="dialog" aria-labelledby="add-modal-title" aria-modal="true">
+    <div id="add-modal">
+      <h2 id="add-modal-title">Add Your Snobbery</h2>
+      <p>What refined opinion shall we add to your web?</p>
+      
+      <div class="search-input-container">
+        <label for="add-modal-search">What are you a snob about?</label>
+        <input
+          type="text"
+          id="add-modal-search"
+          placeholder="e.g., coffee, wine, typography..."
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <ul id="add-modal-suggestions" role="listbox"></ul>
+      </div>
+      
+      <label for="add-modal-description">Describe your snobbiness</label>
+      <textarea
+        id="add-modal-description"
+        placeholder="Explain why you're particular about this..."
+      ></textarea>
+      
+      <div class="snob-meter-container">
+        <div class="snob-meter-label">
+          <label>Snob Level</label>
+          <span class="snob-level" id="snob-level-text">Select your snobbery</span>
+        </div>
+        <div class="snob-meter">
+          <div class="snob-icon" data-level="1" data-label="Curious" title="Curious Dabbler">🤔</div>
+          <div class="snob-icon" data-level="2" data-label="Interested" title="Interested Enthusiast">😊</div>
+          <div class="snob-icon" data-level="3" data-label="Opinionated" title="Opinionated Connoisseur">🧐</div>
+          <div class="snob-icon" data-level="4" data-label="Discerning" title="Discerning Expert">👓</div>
+          <div class="snob-icon" data-level="5" data-label="Insufferable" title="Insufferable Snob">🎩</div>
+        </div>
+      </div>
+      
+      <div id="add-modal-actions">
+        <button id="add-modal-cancel">Cancel</button>
+        <button id="add-modal-submit" disabled>Add to Web</button>
       </div>
     </div>
   </div>
@@ -575,15 +683,23 @@
     // ──────────────────────────────────────────────────────────
     // UI Elements
     // ──────────────────────────────────────────────────────────
-    const searchInput  = document.getElementById('search-input');
-    const addBtn       = document.getElementById('add-btn');
-    const suggestionUl = document.getElementById('suggestions');
     const settingsBtn  = document.getElementById('settings-btn');
     const modalOverlay = document.getElementById('modal-overlay');
     const apiKeyInput  = document.getElementById('api-key-input');
     const saveApiKeyBtn = document.getElementById('save-api-key');
     const cancelBtn    = document.getElementById('cancel-btn');
     const apiStatus    = document.getElementById('api-status');
+    
+    // Add modal elements
+    const headerAddBtn = document.getElementById('header-add-btn');
+    const addModalOverlay = document.getElementById('add-modal-overlay');
+    const addModalSearch = document.getElementById('add-modal-search');
+    const addModalSuggestions = document.getElementById('add-modal-suggestions');
+    const addModalDescription = document.getElementById('add-modal-description');
+    const addModalSubmit = document.getElementById('add-modal-submit');
+    const addModalCancel = document.getElementById('add-modal-cancel');
+    const snobLevelText = document.getElementById('snob-level-text');
+    const snobIcons = document.querySelectorAll('.snob-icon');
 
     // ──────────────────────────────────────────────────────────
     // Settings Modal
@@ -788,7 +904,7 @@
     // ──────────────────────────────────────────────────────────
     // Add / Remove Nodes
     // ──────────────────────────────────────────────────────────
-    async function addNode (label) {
+    async function addNode (label, description = '', snobLevel = 0) {
       label = label.trim().toLowerCase();
       if (!label) return;
 
@@ -799,8 +915,8 @@
       }
 
       // Show loading indicator
-      addBtn.disabled = true;
-      addBtn.innerHTML = 'Adding<span class="loading"></span>';
+      addModalSubmit.disabled = true;
+      addModalSubmit.innerHTML = 'Adding<span class="loading"></span>';
 
       try {
         // Fetch icon data
@@ -811,6 +927,8 @@
         const newNode = {
           id: 'node-' + Date.now(),
           label,
+          description,
+          snobLevel,
           color,
           x: width  / 2 + (Math.random() - 0.5) * 160,
           y: height / 2 + (Math.random() - 0.5) * 160,
@@ -829,12 +947,16 @@
         links.push({ source: CENTER_ID, target: newNode.id });
 
         update();
+        
+        // Close modal and reset form
+        closeAddModal();
+        showToast(`Added "${label}" to your web!`);
       } catch (error) {
         console.error('Error adding node:', error);
         showToast('Error adding item. Please try again.');
       } finally {
-        addBtn.disabled = false;
-        addBtn.textContent = 'Add';
+        addModalSubmit.disabled = false;
+        addModalSubmit.textContent = 'Add to Web';
       }
     }
 
@@ -849,10 +971,11 @@
     }
 
     // ──────────────────────────────────────────────────────────
-    // Search / Autocomplete
+    // Add Modal
     // ──────────────────────────────────────────────────────────
-    let activeIdx = -1;
-    let currentSuggestions = [];
+    let addModalActiveIdx = -1;
+    let addModalCurrentSuggestions = [];
+    let selectedSnobLevel = 0;
 
     // Debounce helper
     function debounce(func, wait) {
@@ -866,38 +989,111 @@
       };
     }
 
-    async function fetchSuggestions(term) {
+    function openAddModal() {
+      addModalOverlay.classList.add('show');
+      addModalSearch.focus();
+    }
+
+    function closeAddModal() {
+      addModalOverlay.classList.remove('show');
+      // Reset form
+      addModalSearch.value = '';
+      addModalDescription.value = '';
+      addModalSuggestions.style.display = 'none';
+      addModalActiveIdx = -1;
+      addModalCurrentSuggestions = [];
+      selectedSnobLevel = 0;
+      snobIcons.forEach(icon => icon.classList.remove('selected'));
+      snobLevelText.textContent = 'Select your snobbery';
+      addModalSubmit.disabled = true;
+    }
+
+    function validateAddModalForm() {
+      const topic = addModalSearch.value.trim();
+      const description = addModalDescription.value.trim();
+      const hasSnobLevel = selectedSnobLevel > 0;
+      
+      addModalSubmit.disabled = !(topic && description && hasSnobLevel);
+    }
+
+    // Open modal on header button click
+    headerAddBtn.addEventListener('click', openAddModal);
+
+    // Open modal on canvas click (but not on nodes)
+    svgEl.addEventListener('click', (e) => {
+      // Only trigger if clicking directly on canvas, not on a node
+      if (e.target === svgEl || e.target.tagName === 'svg') {
+        openAddModal();
+      }
+    });
+
+    // Close modal
+    addModalCancel.addEventListener('click', closeAddModal);
+    addModalOverlay.addEventListener('click', (e) => {
+      if (e.target === addModalOverlay) {
+        closeAddModal();
+      }
+    });
+
+    // Snob level selection
+    snobIcons.forEach(icon => {
+      icon.addEventListener('click', () => {
+        snobIcons.forEach(i => i.classList.remove('selected'));
+        icon.classList.add('selected');
+        selectedSnobLevel = parseInt(icon.dataset.level);
+        snobLevelText.textContent = icon.dataset.label;
+        validateAddModalForm();
+      });
+    });
+
+    // Search input handler
+    addModalSearch.addEventListener('input', () => {
+      const val = addModalSearch.value.trim();
+      validateAddModalForm();
+      
+      if (val.length > 0) {
+        debouncedFetchAddModalSuggestions(val);
+      } else {
+        closeAddModalSuggestions();
+      }
+    });
+
+    // Description input handler
+    addModalDescription.addEventListener('input', validateAddModalForm);
+
+    // Autocomplete for add modal
+    async function fetchAddModalSuggestions(term) {
       if (!term) {
-        closeSuggestions();
+        closeAddModalSuggestions();
         return;
       }
 
       // Show loading state
-      suggestionUl.innerHTML = '<li style="pointer-events: none; opacity: 0.6;">Searching...</li>';
-      suggestionUl.style.display = 'block';
+      addModalSuggestions.innerHTML = '<li style="pointer-events: none; opacity: 0.6;">Searching...</li>';
+      addModalSuggestions.style.display = 'block';
 
-      // Get suggestions based on emoji fallbacks (always available)
+      // Get suggestions based on emoji fallbacks
       const fallbackMatches = Object.keys(EMOJI_FALLBACKS)
         .filter(key => key.includes(term.toLowerCase()))
         .slice(0, 6)
         .map(label => ({ label, icon: EMOJI_FALLBACKS[label] }));
 
-      currentSuggestions = fallbackMatches;
-      renderSuggestionsList(currentSuggestions);
+      addModalCurrentSuggestions = fallbackMatches;
+      renderAddModalSuggestionsList(addModalCurrentSuggestions);
 
-      // Try to fetch from API if available (enhances results)
+      // Try to fetch from API if available
       if (apiKey) {
         try {
           const apiResults = await searchNounProjectIcons(term, 4);
           if (apiResults.length > 0) {
             const apiSuggestions = apiResults
-              .filter(icon => icon && (icon.tags || icon.term)) // Validate response structure
+              .filter(icon => icon && (icon.tags || icon.term))
               .map(icon => ({
                 label: icon.tags?.[0] ?? icon.term ?? 'icon',
-                icon: '🔍' // Placeholder icon for API results
+                icon: '🔍'
               }));
-            currentSuggestions = [...apiSuggestions, ...fallbackMatches].slice(0, 8);
-            renderSuggestionsList(currentSuggestions);
+            addModalCurrentSuggestions = [...apiSuggestions, ...fallbackMatches].slice(0, 8);
+            renderAddModalSuggestionsList(addModalCurrentSuggestions);
           }
         } catch (error) {
           console.warn('API search failed, using fallbacks', error);
@@ -905,12 +1101,12 @@
       }
     }
 
-    const debouncedFetchSuggestions = debounce(fetchSuggestions, 300);
+    const debouncedFetchAddModalSuggestions = debounce(fetchAddModalSuggestions, 300);
 
-    function renderSuggestionsList(suggestions) {
-      suggestionUl.innerHTML = '';
+    function renderAddModalSuggestionsList(suggestions) {
+      addModalSuggestions.innerHTML = '';
       if (suggestions.length === 0) {
-        suggestionUl.style.display = 'none';
+        addModalSuggestions.style.display = 'none';
         return;
       }
 
@@ -919,84 +1115,79 @@
         li.textContent = s.icon + '  ' + s.label;
         li.dataset.label = s.label;
         li.setAttribute('role', 'option');
-        li.setAttribute('aria-selected', i === activeIdx);
+        li.setAttribute('aria-selected', i === addModalActiveIdx);
         li.addEventListener('mousedown', (e) => {
           e.preventDefault();
-          searchInput.value = s.label;
-          closeSuggestions();
-          addBtn.disabled = false;
-          searchInput.focus();
+          addModalSearch.value = s.label;
+          closeAddModalSuggestions();
+          validateAddModalForm();
+          addModalSearch.focus();
         });
-        suggestionUl.appendChild(li);
+        addModalSuggestions.appendChild(li);
       });
 
-      activeIdx = -1;
-      suggestionUl.style.display = 'block';
+      addModalActiveIdx = -1;
+      addModalSuggestions.style.display = 'block';
     }
 
-    function closeSuggestions () {
-      suggestionUl.style.display = 'none';
-      activeIdx = -1;
-      currentSuggestions = [];
+    function closeAddModalSuggestions() {
+      addModalSuggestions.style.display = 'none';
+      addModalActiveIdx = -1;
+      addModalCurrentSuggestions = [];
     }
 
-    searchInput.addEventListener('input', () => {
-      const val = searchInput.value.trim();
-      addBtn.disabled = val.length === 0;
-      
-      if (val.length > 0) {
-        debouncedFetchSuggestions(val);
-      } else {
-        closeSuggestions();
-      }
-    });
-
-    searchInput.addEventListener('keydown', (e) => {
-      const items = suggestionUl.querySelectorAll('li');
+    // Keyboard support for add modal search
+    addModalSearch.addEventListener('keydown', (e) => {
+      const items = addModalSuggestions.querySelectorAll('li');
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        activeIdx = Math.min(activeIdx + 1, items.length - 1);
+        addModalActiveIdx = Math.min(addModalActiveIdx + 1, items.length - 1);
         items.forEach((li, i) => {
-          li.classList.toggle('active', i === activeIdx);
-          li.setAttribute('aria-selected', i === activeIdx);
+          li.classList.toggle('active', i === addModalActiveIdx);
+          li.setAttribute('aria-selected', i === addModalActiveIdx);
         });
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        activeIdx = Math.max(activeIdx - 1, -1);
+        addModalActiveIdx = Math.max(addModalActiveIdx - 1, -1);
         items.forEach((li, i) => {
-          li.classList.toggle('active', i === activeIdx);
-          li.setAttribute('aria-selected', i === activeIdx);
+          li.classList.toggle('active', i === addModalActiveIdx);
+          li.setAttribute('aria-selected', i === addModalActiveIdx);
         });
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        if (activeIdx >= 0 && items[activeIdx]) {
-          searchInput.value = items[activeIdx].dataset.label;
-          closeSuggestions();
-          addBtn.disabled = false;
-          doAdd();
-        } else {
-          doAdd();
+        if (addModalActiveIdx >= 0 && items[addModalActiveIdx]) {
+          addModalSearch.value = items[addModalActiveIdx].dataset.label;
+          closeAddModalSuggestions();
+          validateAddModalForm();
         }
       } else if (e.key === 'Escape') {
-        closeSuggestions();
+        closeAddModalSuggestions();
       }
     });
 
+    // Close suggestions when clicking outside
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.search-area')) closeSuggestions();
+      if (!e.target.closest('#add-modal')) {
+        closeAddModalSuggestions();
+      }
     });
 
-    addBtn.addEventListener('click', doAdd);
+    // Submit handler
+    addModalSubmit.addEventListener('click', () => {
+      const topic = addModalSearch.value.trim();
+      const description = addModalDescription.value.trim();
+      
+      if (topic && description && selectedSnobLevel > 0) {
+        addNode(topic, description, selectedSnobLevel);
+      }
+    });
 
-    function doAdd () {
-      const val = searchInput.value.trim();
-      if (!val) return;
-      addNode(val);
-      searchInput.value = '';
-      addBtn.disabled = true;
-      closeSuggestions();
-      requestAnimationFrame(() => searchInput.focus());
-    }
+    // Keyboard support for modal (Escape to close)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && addModalOverlay.classList.contains('show')) {
+        closeAddModal();
+      }
+    });
 
     // ──────────────────────────────────────────────────────────
     // Toast Notifications
